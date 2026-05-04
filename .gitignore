@@ -1,1 +1,10 @@
 node_modules
+*.log
+.env
+.DS_Store
+dist/
+build/
+.vscode/
+.idea/
+*.mp3
+*.wav

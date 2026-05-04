@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: yt-audio-server
+    env: node
+    plan: free
+    buildCommand: |
+      apt-get update && \
+      apt-get install -y ffmpeg yt-dlp && \
+      npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        scope: runtime
