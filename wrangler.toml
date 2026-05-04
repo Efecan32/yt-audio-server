@@ -1,0 +1,9 @@
+name = "radio-api"
+type = "javascript"
+account_id = "YOUR_ACCOUNT_ID"
+workers_dev = true
+routes = []
+
+[env.production]
+name = "radio-api"
+routes = []

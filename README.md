@@ -1,134 +1,216 @@
-# 🎵 YouTube Audio Server
+# 📻 Turkish Radio Streaming - Cloudflare Worker + ESP32 + Xiaozhi AI
 
-A Node.js Express server that streams audio from YouTube videos. Search for any video and get the audio stream directly!
+Türkçe radyoları Cloudflare Worker API'si üzerinden ESP32 + Xiaozhi AI'ya stream et. Sesli komutlarla radyo dinle!
 
-## ✨ Features
+## ✨ Özellikler
 
-- 🎵 **Audio Streaming**: Stream MP3 audio from YouTube videos
-- 🔍 **Video Search**: Built-in YouTube video search functionality
-- ⚡ **Production Ready**: Configured for Render.com deployment
-- 🏥 **Health Check**: `/` endpoint to verify server status
-- 📊 **Detailed Logging**: Clear console output for debugging
+- 🎙️ **8+ Radyo İstasyonu**: Kral Pop, Power FM, Slow Türk, Metro FM, Fenomen FM, Joy Türk, Süper FM, TRT FM
+- 🎤 **Sesli Komut**: Xiaozhi AI ile ses tanıma ve radyo kontrolü
+- ☁️ **Cloudflare Worker**: 100% Serverless, düşük gecikme
+- 📡 **MCP Tool Destekli**: play_radio komutu entegrasyonu
+- 🔥 **ESP32 Optimized**: Arduino IDE compatible, tam C++ support
 
-## 📋 Requirements
+---
 
-- **Node.js** >= 18.0.0
-- **FFmpeg** (for audio conversion)
-- **yt-dlp** (for YouTube streaming)
+## 📦 Kurulumlar
 
-## 🚀 Local Development
-
-### Installation
+### 1️⃣ Cloudflare Worker Setup
 
 ```bash
+# Gerekli paketler
 npm install
+
+# wrangler.toml dosyasını düzenle
+# account_id = "YOUR_CLOUDFLARE_ACCOUNT_ID"
+
+# Deploy et
+npm run deploy
 ```
 
-### Development Server
+**Sonuç URL**: `https://radio-api.YOUR_ACCOUNT.workers.dev/?s=kral`
 
+### 2️⃣ ESP32 + Xiaozhi AI Setup
+
+#### Gerekli Arduino Kütüphaneleri
+1. **Sketch → Include Library → Manage Libraries** aç
+2. Aşağıdakileri arama ve kur:
+   - `ArduinoJson` - JSON parsing
+   - Xiaozhi AI kütüphanesi (modülün belgelerinden)
+
+#### Dosyaları Kopyala
+```
+radiotolll.h          → Arduino sketch klasörüne
+esp32_xiaozhi_example.ino  → Açmak istediğin sketch
+```
+
+#### Kod Yapılandırması
+`esp32_xiaozhi_example.ino` içinde:
+
+```cpp
+// Satır 9-10: WiFi bilgileri
+const char* ssid = "YOUR_WIFI_SSID";
+const char* password = "YOUR_WIFI_PASSWORD";
+
+// Satır 16-18: I2S Pin ayarları (Xiaozhi'nize göre değişebilir)
+#define I2S_WS 22
+#define I2S_SD 21
+#define I2S_SCLK 26
+```
+
+#### Arduino IDE'de Yükle
+1. Board seç: ESP32
+2. Port seç: (Serial Monitor'de görmek için)
+3. **Upload** düğmesine tıkla
+4. Serial Monitor'ı aç (115200 baud)
+
+---
+
+## 📻 Desteklenen Radyolar
+
+Xiaozhi'ye istediğin radyonun adını söyle:
+
+| Komut | Radyo | Kalite |
+|-------|-------|--------|
+| `kral` | Kral Pop | HQ |
+| `power` | Power FM | HQ |
+| `slow` | Slow Türk | HQ |
+| `metro` | Metro FM | HQ |
+| `fenomen` | Fenomen FM | HQ |
+| `joy` | Joy Türk | HQ |
+| `super` / `süper` | Süper FM | HQ |
+| `trt` | TRT FM | HQ |
+| `stop` / `dur` | Durdur | - |
+
+---
+
+## 💻 API Kullanımı
+
+### Curl ile Test
 ```bash
-npm start
-```
+# Kral Pop çal
+curl "https://round-breeze-8496.muhammetefecan45.workers.dev/?s=kral"
 
-The server will start on `http://localhost:3000`
-
-### API Endpoints
-
-#### Health Check
-```bash
-GET http://localhost:3000/
-```
-
-Response:
-```json
+# Yanıt:
 {
-  "status": "Server is running ✅",
-  "timestamp": "2026-05-04T21:30:00.000Z",
-  "endpoints": {
-    "play": "/play?q=<query>",
-    "health": "/"
-  }
+  "status": "ok",
+  "query": "kral",
+  "radio": "Kral Pop",
+  "stream": "https://dygedge.radyotvonline.net/kralpop/playlist.m3u8"
 }
 ```
 
-#### Stream Audio
-```bash
-GET http://localhost:3000/play?q=song+name
+### ESP32 Seri Komut
+```
+Serial Monitor'a yaz:
+> kral
+> power
+> stop
 ```
 
-Query Parameters:
-- `q` (required): Search query for the YouTube video
-
-Example:
-```bash
-curl "http://localhost:3000/play?q=never+gonna+give+you+up" --output song.mp3
+### Xiaozhi AI Sesli Komut
+```
+"Kral radyosu çal"
+"Power FM'i aç"
+"Radyoyu durdur"
 ```
 
-Response:
-- **Content-Type**: `audio/mpeg`
-- **Body**: MP3 audio stream
+---
 
-## 🌐 Deployment on Render.com
+## 🔧 Mimarisi
 
-### Steps
+```
+┌─────────────────┐
+│   Xiaozhi AI    │  (Ses tanıma)
+└────────┬────────┘
+         │ Metin
+         ▼
+┌─────────────────┐
+│  ESP32 + MCP    │  (radiotolll.h)
+└────────┬────────┘
+         │ HTTP
+         ▼
+┌─────────────────┐
+│  Cloudflare     │  (Worker API)
+│  Worker         │  
+└────────┬────────┘
+         │ Stream URL
+         ▼
+┌─────────────────┐
+│  Radyo Server   │  (m3u8/mp3)
+└─────────────────┘
+```
 
-1. **Connect GitHub Repository**
-   - Go to [Render Dashboard](https://dashboard.render.com)
-   - Click "New +"
-   - Select "Web Service"
-   - Connect your GitHub repository
+---
 
-2. **Render Configuration**
-   - Render will automatically detect `render.yaml`
-   - Environment: Node.js
-   - Build Command: Automatically set from `render.yaml`
-   - Start Command: Automatically set from `render.yaml`
+## 📝 Dosya Yapısı
 
-3. **Deploy**
-   - Push to GitHub
-   - Render automatically deploys on every push to `main`
+```
+.
+├── wrangler.toml              # Cloudflare ayarları
+├── src/
+│   └── index.js              # Worker script
+├── radiotolll.h              # ⭐ ESP32 kütüphanesi (BU önemli!)
+├── esp32_xiaozhi_example.ino # ⭐ Örnek sketch
+├── package.json              # Node.js bağımlılıkları
+└── README.md                 # Bu dosya
+```
 
-### Environment Variables
+---
 
-The following are automatically set:
-- `NODE_ENV`: `production`
-- `PORT`: Set by Render (auto-assigned)
+## 🐛 Sorun Giderme
 
-## 📝 How It Works
+### "Audio codec kullanılamaz" hatası
+**Çözüm**: 
+- Xiaozhi modülü kütüphanesini kontrol et
+- `Board::GetInstance().GetAudioCodec()` NULL dönemez
+- Kütüphanenin doğru şekilde initialize edilip edilmediğini kontrol et
 
-1. **Search Phase**: Uses `yt-search` to find the top YouTube video matching the query
-2. **Stream Phase**: Uses `yt-dlp` to extract and stream the audio
-3. **Pipe**: Audio streams directly to the client as MP3
+### "API Yanıtı Yok" hatası
+**Çözüm**:
+- Cloudflare Worker URL'sini kontrol et
+- Parameter: `?s=kral` (küçük harf)
+- CORS headers açık mı?
 
-## 🔧 Dependencies
+### "Ses çıkmıyor" sorunu
+**Çözüm**:
+- I2S pin bağlantılarını kontrol et
+- Audio codec'in çalışıp çalışmadığını döktüme bak
+- Amplifier/Speaker bağlı mı?
+- Serial Monitor'da hata mesajlarına bak
 
-- **express**: Web server framework
-- **yt-search**: YouTube video search
-- **ffmpeg**: Audio codec support
-- **yt-dlp**: YouTube content extraction
+### WiFi bağlanmıyor
+**Çözüm**:
+- SSID/Password doğru mu?
+- WiFi 2.4GHz mi (ESP32 5GHz desteklemez)
+- ESP32'nin ağda cihazlara bağlanmasına izin var mı?
 
-## 🛠 Troubleshooting
+---
 
-### "yt-dlp command not found"
-- Local: Install via `apt-get install yt-dlp` or package manager
-- Render: Already handled in `render.yaml`
+## 🔐 Güvenlik Notları
 
-### "No videos found"
-- Check query parameter spelling
-- Try a different search term
-- Ensure internet connection
+⚠️ **Dikkat**: Bu versiyonda açık kaynak olup:
+- Tüm URL'ler halka açık
+- Ağları kontrol etmek için authentication yok
+- Taşıyıcı ağlarda çalışmaz
 
-### Port Already in Use
-- The server uses environment variable `PORT`
-- Default: 3000
-- To change: `PORT=8000 npm start`
+**Production için**:
+```cpp
+// wrangler.toml'de environment secret ekle
+[env.production]
+vars = { API_KEY = "secret_key_here" }
 
-## 📄 License
+// radiotolll.h'de kontrol et
+if (info.apiKey != EXPECTED_KEY) return error;
+```
+
+---
+
+## 📄 Lisans
 
 ISC
 
 ---
 
-**🚀 Ready for Render deployment!**
-
-For issues or questions, create a GitHub issue or PR!
+**Hazırlayan**: Efecan32 + GitHub Copilot  
+**Tarih**: May 2026  
+**Status**: ✅ Çalışır ve Test Edildi
